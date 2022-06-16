@@ -1,0 +1,53 @@
+&pinctrl {
+	spim3_miso_gpio0: spim3_miso_gpio0 {
+		pinmux = <SPIM3_MISO_GPIO0>;
+	};
+
+	spim3_mosi_gpio19: spim3_mosi_gpio19 {
+		pinmux = <SPIM3_MOSI_GPIO19>;
+	};
+};
+
+&spi3 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&spim3_miso_gpio0 &spim3_mosi_gpio19
+		     &spim3_sclk_gpio18 &spim3_csel_gpio5>;
+
+	/* Sitronix ST7789V LCD */
+	st7789v: st7789v@1 {
+		status = "okay";
+		compatible = "sitronix,st7789v";
+		reg = <1>;
+		spi-max-frequency = <25000000>; /* 25MHz */
+		label = "ST7789V";
+		cmd-data-gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;	/* DET */
+		// reset-gpios = <&gpio0 23 GPIO_ACTIVE_LOW>;	/* RESX reset */
+		width = <135>;
+		height = <240>;
+		x-offset = <52>;
+		y-offset = <40>;
+		vcom = <0x28>;
+		gctrl = <0x35>;
+		vrhs = <0x10>;
+		vdvs = <0x20>;
+		mdac = <0x00>;
+		gamma = <0x01>;
+		colmod = <0x55>;
+		lcm = <0x0c>;
+		porch-param = [0c 0c 00 33 33];
+		cmd2en-param = [5a 69 02 01];
+		pwctrl1-param = [a4 a1];
+		pvgam-param = [D0 00 02 07 0A 28 32 44 42 06 0E 12 14 17];
+		nvgam-param = [D0 00 02 07 0A 28 31 54 47 0E 1C 17 1B 1E];
+		ram-param = [00 F0];
+		rgb-param = [CD 08 14];
+	};
+};
+
+/ {
+	aliases {
+		gpio0 = &gpio0;
+	};
+};
