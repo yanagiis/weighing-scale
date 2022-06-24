@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <device.h>
+#include <drivers/led.h>
 #include <drivers/sensor.h>
 #include <dt-bindings/dt-util.h>
 #include <zephyr.h>
@@ -24,6 +25,7 @@ static uint8_t characters[][7] = {
 	{0, 0, 0, 0, 1, 1, 1}, // 7
 	{1, 1, 1, 1, 1, 1, 1}, // 8
 	{1, 1, 0, 1, 1, 1, 1}, // 9
+	{1, 0, 0, 0, 0, 0, 0}, // -
 };
 
 struct moving_average {
@@ -57,24 +59,38 @@ static double moving_average_get(struct moving_average *ma)
 	return avg;
 }
 
-static void show_weight(const struct device *max7219,
-			const struct sensor_value *v)
+static int show_weight(const struct device *max7219, double weight)
 {
 	uint8_t buf[64] = {0};
 	uint8_t digits[8] = {0};
 
-	size_t idx = 1;
-	int32_t v1 = v->val1;
-	while (v1 > 0) {
-		digits[idx++] = v1 % 10;
-		v1 /= 10;
+	struct sensor_value v = {0};
+	sensor_value_from_double(&v, weight);
+
+	size_t num_digits = 0;
+	digits[num_digits++] = v.val2 / 100000;
+	while (num_digits < (ARRAY_SIZE(digits) - 1) && v.val1 > 0) {
+		digits[num_digits++] = v.val1 % 10;
+		v.val1 /= 10;
+	}
+	if (num_digits == 1) {
+		digits[num_digits++] = 0;
+	}
+	if (weight < 0) {
+		digits[num_digits++] = 10;
 	}
 
-	digits[0] = v->val2 / 100000;
-
-	for (size_t i = 0; i < ARRAY_SIZE(digits); i++) {
-		memcpy(buf + i << 3, 
+	for (size_t i = 0; i < num_digits; i++) {
+		memcpy(buf + (i * 8), characters[digits[i]],
+		       sizeof(characters[digits[i]]));
 	}
+	buf[15] = 1;
+
+	int ret = led_write_channels(max7219, 0, ARRAY_SIZE(buf), buf);
+	if (ret != 0) {
+		LOG_ERR("led update: ret=%d", ret);
+	}
+	return ret;
 }
 
 void monitor(void)
@@ -104,18 +120,14 @@ void monitor(void)
 		}
 
 		struct sensor_value v;
-		sensor_channel_get(hx711, (int)HX711_SENSOR_CHAN_WEIGHT, &v);
+		sensor_channel_get(
+			hx711, (enum sensor_channel)HX711_SENSOR_CHAN_WEIGHT,
+			&v);
 
 		double weight = sensor_value_to_double(&v);
-		if (weight < -1 || weight > 4000) {
-			continue;
-		}
-
 		moving_average_put(&ma, weight);
-		double average = moving_average_get(&ma);
-		printf("avg %f weight %f raw %d.%d\n", average, weight, v.val1,
-		       v.val2);
+		show_weight(max7219, moving_average_get(&ma));
 	}
 }
 
-K_THREAD_DEFINE(monitor, 1024, monitor, NULL, NULL, NULL, -1, 0, 0);
+K_THREAD_DEFINE(monitor_id, 1024, monitor, NULL, NULL, NULL, -1, 0, 0);
