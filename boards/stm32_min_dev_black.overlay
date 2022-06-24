@@ -1,9 +1,22 @@
+&spi2 {
+	status = "okay";
+	cs-gpios = <&gpiob 12 GPIO_ACTIVE_LOW>;
+
+	max7219: max7219@0 {
+		compatible = "maxim,max7219";
+		status = "okay";
+		label = "MAX7219";
+		reg = <0>;
+		spi-max-frequency = <500000>;
+	};
+};
+
 / {
 	hx711: hx711 {
 		compatible = "avia,hx711";
 		status = "okay";
 		label = "hx711";
-		dout-gpios = <&gpiob 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP) >;
-		sck-gpios = <&gpiob 1 GPIO_ACTIVE_HIGH>;
+		dout-gpios = <&gpioa 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+		sck-gpios = <&gpioa 2 GPIO_ACTIVE_HIGH>;
 	};
 };
