@@ -7,16 +7,33 @@
 		status = "okay";
 		label = "MAX7219";
 		reg = <0>;
-		spi-max-frequency = <500000>;
+		spi-max-frequency = <1000000>;
 	};
 };
 
 / {
+	aliases {
+		powerbtn = &powerbtn;
+		zerobtn = &zerobtn;
+	};
+
+	keys {
+		compatible = "gpio-keys";
+		powerbtn: powerbtn {
+			gpios = <&gpioa 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+			label = "PowerButton";
+		};
+		zerobtn: zerobtn {
+			gpios = <&gpioa 1 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+			label = "ResetButton";
+		};
+	};
+
 	hx711: hx711 {
 		compatible = "avia,hx711";
 		status = "okay";
 		label = "hx711";
-		dout-gpios = <&gpioa 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
-		sck-gpios = <&gpioa 2 GPIO_ACTIVE_HIGH>;
+		dout-gpios = <&gpioa 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+		sck-gpios = <&gpioa 3 GPIO_ACTIVE_HIGH>;
 	};
 };
