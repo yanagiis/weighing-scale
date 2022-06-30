@@ -33,7 +33,7 @@ const static uint8_t characters[][7] = {
 };
 
 struct moving_average {
-	double window[8];
+	double window[4];
 	size_t victim;
 	size_t len;
 };
