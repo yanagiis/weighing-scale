@@ -194,9 +194,10 @@ void monitor(void)
 	struct moving_average ma;
 	moving_average_init(&ma);
 
-	avia_hx711_tare(hx711, 1);
-	// XXX: workaround
-	// the first value from hx711 always not precise
+
+	// FIXME: workaround
+	// the first few values from hx711 are not precise sometimes
+	avia_hx711_tare(hx711, 5);
 	avia_hx711_tare(hx711, 10);
 
 	struct sensor_value slope = {.val1 = 0, .val2 = 2116};
@@ -218,7 +219,7 @@ void monitor(void)
 		ret = k_sem_take(&zero_sem, K_NO_WAIT);
 		if (ret == 0) {
 			moving_average_init(&ma);
-			avia_hx711_tare(hx711, 10);
+			avia_hx711_tare(hx711, 5);
 		}
 
 		ret = sensor_sample_fetch(hx711);
