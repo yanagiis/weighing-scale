@@ -63,6 +63,18 @@ static double moving_average_get(struct moving_average *ma)
 	return avg;
 }
 
+static void show_blank(const struct device *max7219)
+{
+	uint8_t buf[64] = {0};
+	for (int i = 0; i < ARRAY_SIZE(buf); i++) {
+		int ret = (buf[i] != 0) ? led_on(max7219, i)
+					: led_off(max7219, i);
+		if (ret != 0) {
+			LOG_ERR("Failed to update led: ret=%d\n", ret);
+		}
+	}
+}
+
 static void show_weight(const struct device *max7219, double weight)
 {
 	uint8_t buf[64] = {0};
