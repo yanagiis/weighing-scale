@@ -118,7 +118,8 @@ static const struct gpio_dt_spec power_button =
 	GPIO_DT_SPEC_GET(DT_ALIAS(powerbtn), gpios);
 static struct gpio_callback power_button_cb_data;
 
-struct k_sem zero_sem;
+static struct k_sem zero_sem;
+static struct k_sem power_sem;
 
 static void zero_button_pressed(const struct device *dev,
 				struct gpio_callback *cb, uint32_t pins)
@@ -131,7 +132,7 @@ static void power_button_pressed(const struct device *dev,
 				 struct gpio_callback *cb, uint32_t pins)
 {
 	printk("Power button pressed at %" PRIu32 "\n", k_cycle_get_32());
-	pm_state_force(0u, &(struct pm_state_info){PM_STATE_SOFT_OFF, 0, 0});
+	k_sem_give(&power_sem);
 }
 
 static int init_button(const struct gpio_dt_spec *button,
@@ -168,6 +169,7 @@ void main(void)
 	init_button(&zero_button, &zero_button_cb_data, zero_button_pressed);
 	init_button(&power_button, &power_button_cb_data, power_button_pressed);
 	k_sem_init(&zero_sem, 0, 1);
+	k_sem_init(&power_sem, 0, 1);
 }
 
 void monitor(void)
@@ -191,6 +193,15 @@ void monitor(void)
 
 	while (true) {
 		int ret;
+
+		ret = k_sem_take(&power_sem, K_NO_WAIT);
+		if (ret == 0) {
+			show_blank(max7219);
+			avia_hx711_power(hx711, HX711_POWER_OFF);
+			pm_state_force(0u, &(struct pm_state_info){
+						   PM_STATE_SOFT_OFF, 0, 0});
+			k_sleep(K_SECONDS(1));
+		}
 
 		ret = k_sem_take(&zero_sem, K_NO_WAIT);
 		if (ret == 0) {
