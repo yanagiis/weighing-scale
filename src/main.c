@@ -1,4 +1,4 @@
-#include "sensor/hx711/hx711.h"
+#include "weighting.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,37 +31,6 @@ const static uint8_t characters[][7] = {
 	[9] = {1, 1, 0, 1, 1, 1, 1},  // 9
 	[10] = {1, 0, 0, 0, 0, 0, 0}, // -
 };
-
-struct moving_average {
-	double window[4];
-	size_t victim;
-	size_t len;
-};
-
-static void moving_average_init(struct moving_average *ma)
-{
-	ma->victim = 0;
-	ma->len = 0;
-}
-
-static void moving_average_put(struct moving_average *ma, double value)
-{
-	ma->window[ma->victim] = value;
-	ma->victim = (ma->victim + 1) % ARRAY_SIZE(ma->window);
-	if (ma->len != ARRAY_SIZE(ma->window)) {
-		ma->len++;
-	}
-}
-
-static double moving_average_get(struct moving_average *ma)
-{
-	double avg = 0;
-	for (size_t i = 0; i < ma->len; i++) {
-		avg += ma->window[i];
-	}
-	avg /= ma->len;
-	return avg;
-}
 
 static void show_blank(const struct device *max7219)
 {
@@ -104,11 +73,9 @@ static void show_weight(const struct device *max7219, double weight)
 	}
 
 	for (int i = 0; i < idx; i++) {
-		printk("%d ", digits[i]);
 		memcpy(buf + (i * 8), characters[digits[i]],
 		       sizeof(characters[digits[i]]));
 	}
-	printk("\n");
 
 	// dot
 	buf[15] = 1;
@@ -186,31 +153,19 @@ void main(void)
 
 void monitor(void)
 {
-	const struct device *hx711 = DEVICE_DT_GET(DT_NODELABEL(hx711));
-	__ASSERT(hx711 == NULL, "Failed to get hx711 device binding");
 	const struct device *max7219 = DEVICE_DT_GET(DT_NODELABEL(max7219));
 	__ASSERT(max7219 == NULL, "Failed to get max7219 device binding");
 
-	struct moving_average ma;
-	moving_average_init(&ma);
-
-
-	// FIXME: workaround
-	// the first few values from hx711 are not precise sometimes
-	avia_hx711_tare(hx711, 5);
-	avia_hx711_tare(hx711, 10);
-
-	struct sensor_value slope = {.val1 = 0, .val2 = 2116};
-	sensor_attr_set(hx711, (enum sensor_channel)HX711_SENSOR_CHAN_WEIGHT,
-			(enum sensor_attribute)HX711_SENSOR_ATTR_SLOPE, &slope);
+	weighting_init();
 
 	while (true) {
 		int ret;
+		double weight;
 
 		ret = k_sem_take(&power_sem, K_NO_WAIT);
 		if (ret == 0) {
 			show_blank(max7219);
-			avia_hx711_power(hx711, HX711_POWER_OFF);
+			weighting_deinit();
 			pm_state_force(0u, &(struct pm_state_info){
 						   PM_STATE_SOFT_OFF, 0, 0});
 			k_sleep(K_SECONDS(1));
@@ -218,25 +173,16 @@ void monitor(void)
 
 		ret = k_sem_take(&zero_sem, K_NO_WAIT);
 		if (ret == 0) {
-			moving_average_init(&ma);
-			avia_hx711_tare(hx711, 5);
+			weighting_tare();
 		}
 
-		ret = sensor_sample_fetch(hx711);
+		ret = weighting_get(&weight);
 		if (ret != 0) {
 			LOG_ERR("Cannot take measurement: %d", ret);
 			continue;
 		}
 
-		struct sensor_value v;
-		sensor_channel_get(
-			hx711, (enum sensor_channel)HX711_SENSOR_CHAN_WEIGHT,
-			&v);
-
-		double weight = sensor_value_to_double(&v);
-		moving_average_put(&ma, weight);
-		show_weight(max7219, moving_average_get(&ma));
-
+		show_weight(max7219, weight);
 		k_msleep(100);
 	}
 }

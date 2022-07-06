@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
 project(weight-scale)
 
-set(app_sources src/main.c src/board/stm32f1)
+set(app_sources src/main.c src/weighting.c)
 if(${SOC_SERIES} STREQUAL "stm32f1")
   list(APPEND app_sources src/board/stm32f1/pm.c)
 endif()
