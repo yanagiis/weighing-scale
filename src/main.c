@@ -5,8 +5,8 @@
 #include <string.h>
 
 #include <zephyr/device.h>
+#include <zephyr/drivers/display.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/led.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/dt-bindings/dt-util.h>
 #include <zephyr/pm/pm.h>
@@ -17,19 +17,18 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(app);
 
-const static uint8_t characters[][7] = {
-	// G, F, E, D, C, B, A
-	[0] = {0, 1, 1, 1, 1, 1, 1},  // 0
-	[1] = {0, 0, 0, 0, 1, 1, 0},  // 1
-	[2] = {1, 0, 1, 1, 0, 1, 1},  // 2
-	[3] = {1, 0, 0, 1, 1, 1, 1},  // 3
-	[4] = {1, 1, 0, 0, 1, 1, 0},  // 4
-	[5] = {1, 1, 0, 1, 1, 0, 1},  // 5
-	[6] = {1, 1, 1, 1, 1, 0, 1},  // 6
-	[7] = {0, 0, 0, 0, 1, 1, 1},  // 7
-	[8] = {1, 1, 1, 1, 1, 1, 1},  // 8
-	[9] = {1, 1, 0, 1, 1, 1, 1},  // 9
-	[10] = {1, 0, 0, 0, 0, 0, 0}, // -
+const static uint8_t characters[] = {
+	[0] = 0b1111110,  // 0
+	[1] = 0b0110000,  // 1
+	[2] = 0b1101101,  // 2
+	[3] = 0b1111001,  // 3
+	[4] = 0b0110011,  // 4
+	[5] = 0b1011011,  // 5
+	[6] = 0b1011111,  // 6
+	[7] = 0b1110000,  // 7
+	[8] = 0b1111111,  // 8
+	[9] = 0b1111011,  // 9
+	[10] = 0b0000001, // -
 };
 
 static void show_blank(const struct device *max7219)
@@ -46,8 +45,15 @@ static void show_blank(const struct device *max7219)
 
 static void show_weight(const struct device *max7219, double weight)
 {
-	uint8_t buf[64] = {0};
+	uint8_t buf[8] = {0};
 	uint8_t digits[9] = {0};
+
+	const struct display_buffer_descriptor desc = {
+		.buf_size = sizeof(buf),
+		.width = 8,
+		.height = 8,
+		.pitch = 8,
+	};
 
 	weight += 0.05;
 
@@ -73,20 +79,13 @@ static void show_weight(const struct device *max7219, double weight)
 	}
 
 	for (int i = 0; i < idx; i++) {
-		memcpy(buf + (i * 8), characters[digits[i]],
-		       sizeof(characters[digits[i]]));
+		buf[i] = characters[digits[i]];
 	}
 
 	// dot
-	buf[15] = 1;
+	buf[1] |= 1 << 7;
 
-	for (int i = 0; i < ARRAY_SIZE(buf); i++) {
-		int ret = (buf[i] != 0) ? led_on(max7219, i)
-					: led_off(max7219, i);
-		if (ret != 0) {
-			LOG_ERR("Failed to update led: ret=%d\n", ret);
-		}
-	}
+	display_write(max7219, 0, 0, &desc, buf);
 }
 
 static const struct gpio_dt_spec zero_button =
