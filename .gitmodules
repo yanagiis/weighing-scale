@@ -1,6 +1,3 @@
 [submodule "hx711_driver"]
 	path = hx711_driver
 	url = git@github.com:yanagiis/HX711_zephyr_driver.git
-[submodule "max7219_driver"]
-	path = max7219_driver
-	url = git@github.com:yanagiis/max7219-zephyr-driver.git
