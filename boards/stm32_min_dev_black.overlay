@@ -11,6 +11,18 @@
 	};
 };
 
+&spi1 {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&i2c2 {
+	status = "disabled";
+};
+
 / {
 	aliases {
 		powerbtn = &powerbtn;
