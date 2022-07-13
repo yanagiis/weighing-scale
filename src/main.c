@@ -31,18 +31,6 @@ const static uint8_t characters[] = {
 	[10] = 0b0000001, // -
 };
 
-static void show_blank(const struct device *max7219)
-{
-	uint8_t buf[64] = {0};
-	for (int i = 0; i < ARRAY_SIZE(buf); i++) {
-		int ret = (buf[i] != 0) ? led_on(max7219, i)
-					: led_off(max7219, i);
-		if (ret != 0) {
-			LOG_ERR("Failed to update led: ret=%d\n", ret);
-		}
-	}
-}
-
 static void show_weight(const struct device *max7219, double weight)
 {
 	uint8_t buf[8] = {0};
@@ -163,7 +151,6 @@ void monitor(void)
 
 		ret = k_sem_take(&power_sem, K_NO_WAIT);
 		if (ret == 0) {
-			show_blank(max7219);
 			weighting_deinit();
 			pm_state_force(0u, &(struct pm_state_info){
 						   PM_STATE_SOFT_OFF, 0, 0});
