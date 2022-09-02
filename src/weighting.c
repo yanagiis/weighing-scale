@@ -10,10 +10,8 @@
 #include <zephyr/dt-bindings/dt-util.h>
 #include <zephyr/pm/pm.h>
 
-#include <zephyr.h>
-
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(weighting_sensor);
 
 #define MOVING_MEDIAN_SIZE 8

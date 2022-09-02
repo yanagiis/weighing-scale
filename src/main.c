@@ -7,14 +7,13 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/led.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/dt-bindings/dt-util.h>
 #include <zephyr/pm/pm.h>
 
-#include <zephyr.h>
-
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(app);
 
 const static uint8_t characters[] = {
